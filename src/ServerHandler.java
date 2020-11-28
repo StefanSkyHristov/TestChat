@@ -22,9 +22,9 @@ public class ServerHandler implements Runnable {
 	
 	public ServerHandler(Socket clientSocket, Server server, DatabaseConnection db)
 	{
-		this.clientSocket = clientSocket;
 		this.server = server;
 		this.db = db;
+		this.clientSocket = clientSocket;
 	}
 	
 	@Override
@@ -39,7 +39,7 @@ public class ServerHandler implements Runnable {
 		 {
 			BufferedReader clientInputStream = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 			BufferedReader serverInput = new BufferedReader(new InputStreamReader(System.in));
-			PrintStream outputStream = new PrintStream(clientSocket.getOutputStream());
+			this.outputStream = new PrintStream(clientSocket.getOutputStream());
 			
 			String messageFromClient = "";
 			boolean accepted = false;
@@ -89,6 +89,7 @@ public class ServerHandler implements Runnable {
 		{
 			System.out.println("User " + username + " has joined the chat!");
 			this.listOfHandlers = server.getHandlersList();
+			System.out.println("Size is " + listOfHandlers.size());
 			String notification = "User " + username + " has joined the conversation!";
 			for(ServerHandler handler: listOfHandlers)
 			{

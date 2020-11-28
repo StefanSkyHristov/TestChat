@@ -15,7 +15,7 @@ public class Server implements Runnable {
 	}
 
 	@Override
-	public synchronized void run() 
+	public void run() 
 	{	
 		try
 		{
@@ -25,14 +25,17 @@ public class Server implements Runnable {
 				System.out.println("Server started successfully.");
 				System.out.println("Waiting for client request...");
 				
+				
 				this.db = new DatabaseConnection("jdbc:mysql://localhost:3306/javaserver", "root", "");
 				
 				Socket s = serverS.accept();
 				System.out.println("Connection successful!");
 				
 				ServerHandler handler = new ServerHandler(s, this, db);
+				Thread t = new Thread(handler); // We have to initialize the handler as a Thread since
+												//just using the default .run() method on "Runnable" does not seem to work
 				handlers.add(handler);
-				handler.run();
+				t.start();
 			}
 		} 
 		catch (IOException e)
