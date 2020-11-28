@@ -19,12 +19,11 @@ public class ServerHandler implements Runnable {
 	private List<ServerHandler>listOfHandlers;
 	private PrintStream outputStream;
 	
-	
-	public ServerHandler(Socket clientSocket, Server server, DatabaseConnection db)
+	public ServerHandler(Client client, Server server, DatabaseConnection db)
 	{
 		this.server = server;
 		this.db = db;
-		this.clientSocket = clientSocket;
+		this.client = client;
 	}
 	
 	@Override
@@ -37,9 +36,9 @@ public class ServerHandler implements Runnable {
 	{
 		 try 
 		 {
-			BufferedReader clientInputStream = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+			BufferedReader clientInputStream = new BufferedReader(new InputStreamReader(this.client.getS().getInputStream()));
 			BufferedReader serverInput = new BufferedReader(new InputStreamReader(System.in));
-			this.outputStream = new PrintStream(clientSocket.getOutputStream());
+			this.outputStream = new PrintStream(this.client.getS().getOutputStream());
 			
 			String messageFromClient = "";
 			boolean accepted = false;
@@ -53,7 +52,7 @@ public class ServerHandler implements Runnable {
 					else if(messageFromClient.startsWith("Login"))
 					{
 						handleLoginAuthentication(messageFromClient);
-						
+						startUserChatSession();
 					}
 					else
 					{
@@ -65,8 +64,10 @@ public class ServerHandler implements Runnable {
 			
 			System.out.println("Connection closing...");
 			
+				this.client.getS().close();
 				clientInputStream.close();
-				clientSocket.close();
+				outputStream.close();
+				listOfHandlers.remove(this);
 				System.out.println("Connection closed.");
 		 } 
 		 catch (IOException e)
@@ -87,9 +88,12 @@ public class ServerHandler implements Runnable {
 		
 		if(authenticated)
 		{
+			this.client.setUsername(username);
 			System.out.println("User " + username + " has joined the chat!");
+			
 			this.listOfHandlers = server.getHandlersList();
 			System.out.println("Size is " + listOfHandlers.size());
+			
 			String notification = "User " + username + " has joined the conversation!";
 			for(ServerHandler handler: listOfHandlers)
 			{
@@ -108,7 +112,7 @@ public class ServerHandler implements Runnable {
 	{
 		try
 		{
-			this.outputStream = new PrintStream(clientSocket.getOutputStream());
+			this.outputStream = new PrintStream(this.client.getS().getOutputStream());
 			this.outputStream.println(txtMsg);
 		}
 		catch (IOException e)
@@ -117,12 +121,47 @@ public class ServerHandler implements Runnable {
 		}
 	}
 	
-//	public void broadcastMessages(String fromUser, String message)
-//	{
-//		String defaultUser = "Client";
-//		if(fromUser)
-//		System.out.println("Client: " + messageFromClient);
-//		String serverMsg = serverInput.readLine();
-//		outputStream.println(serverMsg);
-//	}
+	private void startUserChatSession()
+	{
+		try
+		{
+			BufferedReader serverInput = new BufferedReader(new InputStreamReader(System.in));
+			BufferedReader clientInputStream = new BufferedReader(new InputStreamReader(this.client.getS().getInputStream()));
+			String messageFromClient = "";
+			String serverMsg;
+			while((messageFromClient = clientInputStream.readLine()) != null)
+			{
+				if(messageFromClient.startsWith("Logout"))
+				{
+					break;
+				}
+				else
+				{
+					System.out.println(this.client.getUsername() + ": " + messageFromClient);
+					serverMsg = serverInput.readLine();
+					outputStream.println(serverMsg);
+				}
+			}
+		}
+		catch (IOException e) {
+			System.out.println("User is no longer available.");
+			e.printStackTrace();
+		}
+		try
+		{
+			this.client.getS().close();
+			this.client.getS().getInputStream().close();
+			this.outputStream.close();
+			this.listOfHandlers.remove(this);
+			System.out.println("Connection closed.");
+		}
+		catch(IOException e)
+		{
+			System.out.println(e);
+		}
+	}
+
+	public Client getClient() {
+		return this.client;
+	}
 }
