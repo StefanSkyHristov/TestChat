@@ -52,7 +52,7 @@ public class Client {
 	{
 		String messageToServer = "";
 		
-		while(!messageToServer.equals("LOGOUT"))
+		while(!messageToServer.equals("Logout"))
 		{
 			try 
 			{
@@ -152,5 +152,10 @@ public class Client {
 		{
 			System.err.println("Connection failed.");
 		}
+	}
+	
+	public PrintStream getOutputStream()
+	{
+		return this.outputStream;
 	}
 }

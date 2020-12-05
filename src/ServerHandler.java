@@ -45,21 +45,19 @@ public class ServerHandler implements Runnable {
 
 			while((messageFromClient = clientInputStream.readLine()) != null)
 			{
-					if(messageFromClient.equals("Logout"))
-					{
-						break;
-					}
-					else if(messageFromClient.startsWith("Login"))
-					{
-						handleLoginAuthentication(messageFromClient);
-						startUserChatSession();
-					}
-					else
-					{
-						System.out.println("Client: " + messageFromClient);
-						String serverMsg = serverInput.readLine();
-						outputStream.println(serverMsg);
-					}
+
+				if(messageFromClient.startsWith("Login"))
+				{
+					handleLoginAuthentication(messageFromClient);
+					startUserChatSession();
+					break;
+				}
+				else
+				{
+					System.out.println("Client: " + messageFromClient);
+					String serverMsg = serverInput.readLine();
+					outputStream.println(serverMsg);
+				}
 			}
 			
 			System.out.println("Connection closing...");
@@ -67,7 +65,6 @@ public class ServerHandler implements Runnable {
 				this.client.getS().close();
 				clientInputStream.close();
 				outputStream.close();
-				listOfHandlers.remove(this);
 				System.out.println("Connection closed.");
 		 } 
 		 catch (IOException e)
@@ -97,7 +94,10 @@ public class ServerHandler implements Runnable {
 			String notification = "User " + username + " has joined the conversation!";
 			for(ServerHandler handler: listOfHandlers)
 			{
-				handler.notify(notification);
+				if(handler.getClient().getUsername() != this.getClient().getUsername())
+				{
+					handler.notify(notification);
+				}
 			}
 		}
 		else
@@ -121,6 +121,27 @@ public class ServerHandler implements Runnable {
 		}
 	}
 	
+	private void logOff()
+	{
+		server.removeHandler(this);
+		List<ServerHandler> listOfHandlers = server.getHandlersList();
+		
+		for(ServerHandler handler: listOfHandlers)
+		{
+			//outputStream.println(this.getClient().getUsername() + " has logged off the chat.");---> original:working
+			notify(this.getClient().getUsername() + " has logged off the chat.");
+		}
+		try
+		{
+			this.client.getS().close();
+		}
+		catch (IOException e)
+		{
+			System.out.println("Error in LogOff");
+			e.printStackTrace();
+		}
+	}
+	
 	private void startUserChatSession()
 	{
 		try
@@ -133,6 +154,7 @@ public class ServerHandler implements Runnable {
 			{
 				if(messageFromClient.startsWith("Logout"))
 				{
+					logOff();
 					break;
 				}
 				else
@@ -143,25 +165,15 @@ public class ServerHandler implements Runnable {
 				}
 			}
 		}
-		catch (IOException e) {
+		catch (IOException e)
+		{
 			System.out.println("User is no longer available.");
 			e.printStackTrace();
 		}
-		try
-		{
-			this.client.getS().close();
-			this.client.getS().getInputStream().close();
-			this.outputStream.close();
-			this.listOfHandlers.remove(this);
-			System.out.println("Connection closed.");
-		}
-		catch(IOException e)
-		{
-			System.out.println(e);
-		}
 	}
-
-	public Client getClient() {
+	
+	public Client getClient()
+	{
 		return this.client;
 	}
 }

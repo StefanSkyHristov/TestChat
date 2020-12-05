@@ -60,4 +60,8 @@ public class Server implements Runnable {
 	{
 		return this.handlers;
 	}
+	public void removeHandler(ServerHandler handler)
+	{
+		handlers.remove(handler);
+	}
 }
