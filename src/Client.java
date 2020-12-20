@@ -59,7 +59,7 @@ public class Client {
 				messageToServer = inputStream.readLine();
 				outputStream.println(messageToServer);
 				String serverMsgs = serverReader.readLine();
-				System.out.println("Server: " + serverMsgs);
+				System.out.println(serverMsgs);
 			}
 			catch (IOException e)
 			{
@@ -96,6 +96,22 @@ public class Client {
 			this.outputStream.println("Login " + username + " " + password);
 		}
 		catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void GUILogin(String usernameInput, String passwordInput)
+	{
+		try
+		{
+			this.outputStream = new PrintStream(s.getOutputStream());
+			String username = usernameInput;
+			String password = passwordInput;
+			
+			this.outputStream.println("Login " + username + " " + password);
+		}
+		catch (IOException e)
+		{
 			e.printStackTrace();
 		}
 	}
@@ -141,7 +157,7 @@ public class Client {
 	
 	public static void main(String[] args)
 	{
-		Client client = new Client("localhost", 8979);
+		Client client = new Client("localhost", 8999);
 		if(client.connectToServer())
 		{
 			System.out.println("A new client has connected!");

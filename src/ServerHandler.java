@@ -52,6 +52,10 @@ public class ServerHandler implements Runnable {
 					startUserChatSession();
 					break;
 				}
+				else if(messageFromClient.startsWith("msg"))
+				{
+					sendToUser(messageFromClient);
+				}
 				else
 				{
 					System.out.println("Client: " + messageFromClient);
@@ -74,6 +78,23 @@ public class ServerHandler implements Runnable {
 		}
 	}
 	
+	public void sendToUser(String messageFromClient)
+	{
+		String[] messageSplit = messageFromClient.split(" ", 3);
+		String userToSend = messageSplit[1];
+		String messageBody = messageSplit[2];
+		
+		List<ServerHandler>listOfUsers = this.server.getHandlersList();
+		
+		for(ServerHandler user: listOfUsers)
+		{
+			if(user.getClient().getUsername().equals(userToSend))
+			{
+				user.sendMessage(this.client.getUsername() + ": " + messageBody);
+			}
+		}
+	}
+
 	public boolean handleLoginAuthentication(String message)
 	{
 		boolean authenticated = false;
@@ -128,7 +149,6 @@ public class ServerHandler implements Runnable {
 		
 		for(ServerHandler handler: listOfHandlers)
 		{
-			//outputStream.println(this.getClient().getUsername() + " has logged off the chat.");---> original:working
 			notify(this.getClient().getUsername() + " has logged off the chat.");
 		}
 		try
@@ -157,11 +177,15 @@ public class ServerHandler implements Runnable {
 					logOff();
 					break;
 				}
+				else if(messageFromClient.startsWith("msg"))
+				{
+					sendToUser(messageFromClient);
+				}
 				else
 				{
 					System.out.println(this.client.getUsername() + ": " + messageFromClient);
 					serverMsg = serverInput.readLine();
-					outputStream.println(serverMsg);
+					outputStream.println("Server: " + serverMsg);
 				}
 			}
 		}
@@ -170,6 +194,11 @@ public class ServerHandler implements Runnable {
 			System.out.println("User is no longer available.");
 			e.printStackTrace();
 		}
+	}
+	
+	public void sendMessage(String msg)
+	{
+		this.outputStream.println(msg);
 	}
 	
 	public Client getClient()
