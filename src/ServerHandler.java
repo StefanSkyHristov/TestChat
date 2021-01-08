@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ServerHandler implements Runnable {
-	private Socket clientSocket;
 	private DatabaseConnection db;
 	private Client client;
 	private final Server server;
@@ -32,6 +31,34 @@ public class ServerHandler implements Runnable {
 		handleClientCommunication();
 	}
 	
+	private void notifyOfOnlineUsers()
+	{
+		List<ServerHandler> listOfHandlers = server.getHandlersList();
+		if(!listOfHandlers.isEmpty())
+		{
+			/*Notify newly logged in user of other online users(if any). */
+			for(ServerHandler handler: listOfHandlers)
+			{
+				if(handler.getClient().getUsername() != null &&
+				   handler.getClient().getUsername() != this.getClient().getUsername())
+				{
+					String notification = "Online: " + handler.getClient().getUsername();
+					notify(notification);
+				}
+			}
+		}
+		
+		/* Notify other users of our Presence */
+		for(ServerHandler handler: listOfHandlers)
+		{
+			 if(handler.getClient().getUsername() != this.getClient().getUsername())
+			 {
+				 String notification = "Online: " + this.getClient().getUsername();
+				 handler.notify(notification);
+			 }
+		}
+	}
+
 	private void handleClientCommunication()
 	{
 		 try 
@@ -49,8 +76,7 @@ public class ServerHandler implements Runnable {
 				if(messageFromClient.startsWith("Login"))
 				{
 					handleLoginAuthentication(messageFromClient);
-					startUserChatSession();
-					break;
+					notifyOfOnlineUsers();
 				}
 				else if(messageFromClient.startsWith("msg"))
 				{
@@ -58,14 +84,14 @@ public class ServerHandler implements Runnable {
 				}
 				else
 				{
-					System.out.println("Client: " + messageFromClient);
+					System.out.println(this.client.getUsername() + ": " + messageFromClient);
 					String serverMsg = serverInput.readLine();
 					outputStream.println(serverMsg);
 				}
 			}
 			
 			System.out.println("Connection closing...");
-			
+				logOff();
 				this.client.getS().close();
 				clientInputStream.close();
 				outputStream.close();
@@ -90,7 +116,7 @@ public class ServerHandler implements Runnable {
 		{
 			if(user.getClient().getUsername().equals(userToSend))
 			{
-				user.sendMessage(this.client.getUsername() + ": " + messageBody);
+				user.sendMessage("Message from " + this.client.getUsername() + ": " + messageBody);
 			}
 		}
 	}
@@ -107,15 +133,14 @@ public class ServerHandler implements Runnable {
 		if(authenticated)
 		{
 			this.client.setUsername(username);
-			System.out.println("User " + username + " has joined the chat!");
 			
 			this.listOfHandlers = server.getHandlersList();
-			System.out.println("Size is " + listOfHandlers.size());
+			System.out.println("Online users: " + listOfHandlers.size());
 			
-			String notification = "User " + username + " has joined the conversation!";
+			String notification = "Login successful: " + username;
 			for(ServerHandler handler: listOfHandlers)
 			{
-				if(handler.getClient().getUsername() != this.getClient().getUsername())
+				if(handler.getClient().getUsername() == this.getClient().getUsername())
 				{
 					handler.notify(notification);
 				}
@@ -123,7 +148,7 @@ public class ServerHandler implements Runnable {
 		}
 		else
 		{
-			System.out.println("Error in login attempt.");
+			System.err.println("Login failed.");
 		}
 		
 		return authenticated;
@@ -149,7 +174,10 @@ public class ServerHandler implements Runnable {
 		
 		for(ServerHandler handler: listOfHandlers)
 		{
-			notify(this.getClient().getUsername() + " has logged off the chat.");
+			if(handler.getClient().getUsername() != this.getClient().getUsername())
+			{
+				notify("Offline: " + this.getClient().getUsername());
+			}
 		}
 		try
 		{

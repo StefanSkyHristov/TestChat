@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 public class Client {
@@ -16,6 +17,8 @@ public class Client {
 	private BufferedReader inputStream;
 	private BufferedReader serverReader;
 	private String username;
+	public ArrayList<UserStatusListener>listeners = new ArrayList<>();
+	public ArrayList<MessageListener> messageListener = new ArrayList<>();
 	
 	public Client(String hostName, int portNum)
 	{
@@ -50,43 +53,138 @@ public class Client {
 	
 	public void startClientSession()
 	{
-		String messageToServer = "";
-		
-		while(!messageToServer.equals("Logout"))
-		{
-			try 
+		Thread starter = new Thread() {
+			
+			@Override
+			public void run()
 			{
-				messageToServer = inputStream.readLine();
-				outputStream.println(messageToServer);
-				String serverMsgs = serverReader.readLine();
-				System.out.println(serverMsgs);
+				String messageToServer = "";
+				
+				while(!messageToServer.equals("Logout"))
+				{
+					try 
+					{
+						messageToServer = inputStream.readLine();
+						outputStream.println(messageToServer);
+						String serverMsgs = serverReader.readLine();
+						System.out.println(serverMsgs);
+					}
+					catch (IOException e)
+					{
+						e.printStackTrace();
+					}
+				}
+				
+				try 
+				{
+					inputStream.close();
+					outputStream.close();
+					s.close();
+					System.out.println("User " + getUsername() + " logged out.");
+				} 
+				catch (IOException e)
+				{
+					System.out.println(e);
+					e.printStackTrace();
+				}
 			}
-			catch (IOException e)
-			{
-				e.printStackTrace();
+		};
+		starter.run();
+	}
+	
+	public void readIncomingMessages()
+	{
+		Thread reader = new Thread() {
+			
+			@Override
+			public void run()
+			{	
+				try {
+					String serverResponse = "";
+					while((serverResponse = serverReader.readLine()) != null)
+					{
+			
+						if(serverResponse.startsWith("Online: "))
+						{
+							callOnlineStatusListener(serverResponse);
+						}
+						else if(serverResponse.startsWith("Offline: "))
+						{
+							callOfflineStatusListener(serverResponse);
+						}
+						else if(serverResponse.startsWith("Message from "))
+						{
+							callOnReceivedMessageListener(serverResponse);
+						}
+					}
+				} 
+				catch (IOException e1)
+				{
+					e1.printStackTrace();
+				}
+				
+				try 
+				{
+					inputStream.close();
+					outputStream.close();
+					s.close();
+					System.out.println("User " + getUsername() + " logged out.");
+				} 
+				catch (IOException e)
+				{
+					System.out.println(e);
+					e.printStackTrace();
+				}
 			}
-		}
-		
-		try 
+		};
+		reader.start();
+	}
+	
+	public void sendMessage(String user, String message)
+	{
+		outputStream.println("msg " + user + " " + message);
+	}
+	
+	private void callOnlineStatusListener(String msg)
+	{
+		String[] msgTokens = msg.split(" ");
+		String user = msgTokens[1];
+		for(UserStatusListener statusListener: listeners)
 		{
-			inputStream.close();
-			outputStream.close();
-			s.close();
-			System.out.println("Connection closed.");
-		} 
-		catch (IOException e)
-		{
-			System.out.println(e);
-			e.printStackTrace();
+			statusListener.online(user);
 		}
 	}
 	
-	public void entryLogin()
+	private void callOfflineStatusListener(String msg)
 	{
+		String[] msgTokens = msg.split(" ");
+		String user = msgTokens[1];
+		for(UserStatusListener statusListener: listeners)
+		{
+			statusListener.offline(user);
+		}
+	}
+	
+	private void callOnReceivedMessageListener(String msg)
+	{
+		String[] msgTokens = msg.split(" ", 4);
+		String user = msgTokens[2];
+		String message = msgTokens[3];
+		
+		for(MessageListener listener: messageListener)
+		{
+			listener.onMessage(user, message);
+		}
+	}
+	
+	public boolean entryLogin()
+	{
+		boolean login = true;
 		Scanner sc = new Scanner(System.in);
 		try
 		{
 			this.outputStream = new PrintStream(s.getOutputStream());
+			
 			System.out.println("Please type in your username:");
 			String username = sc.next();
 			
@@ -94,26 +192,56 @@ public class Client {
 			String password = sc.next();
 			
 			this.outputStream.println("Login " + username + " " + password);
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public void GUILogin(String usernameInput, String passwordInput)
-	{
-		try
-		{
-			this.outputStream = new PrintStream(s.getOutputStream());
-			String username = usernameInput;
-			String password = passwordInput;
+			this.setUsername(username);
 			
-			this.outputStream.println("Login " + username + " " + password);
+			String response = serverReader.readLine();
+			if(response.equals("Login successful: " + getUsername()))
+			{
+				login = true;
+			}
+			else
+			{
+				login = false;
+			}
 		}
 		catch (IOException e)
 		{
 			e.printStackTrace();
 		}
+		return login;
+	}
+	
+	public void sendMsg(String msg)
+	{
+		this.outputStream.println("msg " + msg);
+	}
+	
+	public boolean GUILogin(String usernameInput, String passwordInput)
+	{
+		boolean login = false;
+		try
+		{
+			this.outputStream = new PrintStream(s.getOutputStream());
+			this.outputStream.println("Login " + usernameInput + " " + passwordInput);
+			
+			String response = serverReader.readLine();
+			if(response.equals("Login successful: " + usernameInput))
+			{
+				login = true;
+				this.setUsername(usernameInput);
+				readIncomingMessages();
+			}
+			else
+			{
+				login = false;
+			}
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		
+		return login;
 	}
 	
 	public String getHostName()
@@ -157,12 +285,46 @@ public class Client {
 	
 	public static void main(String[] args)
 	{
-		Client client = new Client("localhost", 8999);
+		Client client = new Client("localhost", 12304);
+		client.addStatusListener(new UserStatusListener() {
+
+			@Override
+			public void online(String user)
+			{
+				System.out.println("ONLINE: " + user);
+			}
+
+			@Override
+			public void offline(String user)
+			{
+				System.out.println("OFFLINE: " + user);
+			}
+			
+		});
+		
+		client.addMessageListener(new MessageListener() {
+
+			@Override
+			public void onMessage(String fromUser, String message)
+			{
+				System.out.println(fromUser + " " + message);
+			}
+			
+		});
+		
 		if(client.connectToServer())
 		{
 			System.out.println("A new client has connected!");
-			client.entryLogin();
-			client.startClientSession();
+			if(client.entryLogin())
+			{
+				//client.startClientSession();
+				client.sendMessage("john","sup brotha!");
+				client.readIncomingMessages();
+			}
+			else
+			{
+				System.err.println("Could not Login.");
+			}
 		}
 		else
 		{
@@ -173,5 +335,25 @@ public class Client {
 	public PrintStream getOutputStream()
 	{
 		return this.outputStream;
+	}
+	
+	public void addStatusListener(UserStatusListener listener)
+	{
+		this.listeners.add(listener);
+	}
+	
+	public void removeStatusListener(UserStatusListener listener)
+	{
+		this.listeners.remove(listener);
+	}
+	
+	public void addMessageListener(MessageListener listener)
+	{
+		this.messageListener.add(listener);
+	}
+	
+	public void removeMessageListener(MessageListener listener)
+	{
+		this.messageListener.remove(listener);
 	}
 }
