@@ -318,7 +318,7 @@ public class Client {
 			if(client.entryLogin())
 			{
 				//client.startClientSession();
-				client.sendMessage("john","sup brotha!");
+				//client.sendMessage("john","sup brotha!");
 				client.readIncomingMessages();
 			}
 			else

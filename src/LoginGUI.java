@@ -1,6 +1,5 @@
-import java.io.IOException;
-
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -92,7 +91,6 @@ public class LoginGUI extends Application implements UserStatusListener {
 					window.close();
 					
 					//client.readIncomingMessages();
-					
 					this.lv.setOnMouseClicked(evt -> {
 						System.out.println("Works!");
 						if(evt.getClickCount() == 2 && !names.isEmpty())
@@ -142,7 +140,9 @@ public class LoginGUI extends Application implements UserStatusListener {
 	
 	private void addUserToUserBox(String user)
 	{
-		this.names.add(user);
+		// The "Platform" class is called as without that, every time a user is added to the 
+		// online users list, an exception is thrown.
+		Platform.runLater(()->this.names.add(user));
 	}
 	
 	private void removeUserFromUserBox(String user)
@@ -159,8 +159,7 @@ public class LoginGUI extends Application implements UserStatusListener {
 	public void start(Stage primaryStage) throws Exception {
 		window = primaryStage;
 		window.setTitle(APP_NAME);
-		createForm();
-		
+		createForm();	
 	}
 	
 	@Override

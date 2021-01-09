@@ -12,7 +12,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
-public class MessageWindow extends Application{
+public class MessageWindow extends Application implements MessageListener{
 		private Stage window;
 		
 		private Button send = new Button("Send");
@@ -32,6 +32,7 @@ public class MessageWindow extends Application{
 		{
 			this.client = client;
 			this.otherUser = otherUser;
+			client.addMessageListener(this);
 		}
 		
 		public void createMessageWindow()
@@ -42,18 +43,18 @@ public class MessageWindow extends Application{
 			
 			this.send.setOnAction(evt -> {
 				String messageBody = inputMessage.getText();
-				String userToSend = this.client.getUsername();
-				
-				this.messageContainer.add(new Label(messageBody));
-				this.client.sendMsg(userToSend + " " + messageBody);
+				String userToSend = this.otherUser;
+				this.messageContainer.add(new Label(this.client.getUsername() + ": " + messageBody));
+				this.client.sendMessage(userToSend, messageBody);
+				this.inputMessage.setText("");
 				
 				if(this.messageIndex % 2 == 0)
 				{
-					messageContainer.get(messageIndex).setAlignment(Pos.BASELINE_LEFT);
+					messageContainer.get(this.messageIndex).setAlignment(Pos.BASELINE_LEFT);
 				}
 				else
 				{
-					messageContainer.get(messageIndex).setAlignment(Pos.BASELINE_RIGHT);
+					messageContainer.get(this.messageIndex).setAlignment(Pos.BASELINE_RIGHT);
 				}
 				
 				this.messageLayout.getChildren().addAll(this.messageContainer.get(messageIndex));
@@ -80,4 +81,10 @@ public class MessageWindow extends Application{
 		window.show();
 	}
 
+	@Override
+	public void onMessage(String fromUser, String message)
+	{
+		String messageToAdd = fromUser + " " + message;
+		this.messageContainer.add(new Label(messageToAdd));
+	}
 }
