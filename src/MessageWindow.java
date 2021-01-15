@@ -1,12 +1,16 @@
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
@@ -60,6 +64,27 @@ public class MessageWindow extends Application implements MessageListener{
 				this.messageLayout.getChildren().addAll(this.messageContainer.get(messageIndex));
 				this.messageIndex++;
 			});
+			
+			this.inputMessage.setOnKeyPressed(new EventHandler<KeyEvent>() 
+					{
+
+						@Override
+						public void handle(KeyEvent keyPressed)
+						{
+							if(keyPressed.getCode().equals(KeyCode.ENTER))
+							{
+								String messageBody = inputMessage.getText();
+								String userToSend = otherUser;
+								client.sendMessage(userToSend, messageBody);
+								messageContainer.add(new Label("You" + ": " + messageBody));
+								messageContainer.get(messageIndex).setAlignment(Pos.BASELINE_RIGHT);
+								inputMessage.setText("");
+								
+								messageLayout.getChildren().addAll(messageContainer.get(messageIndex));
+								messageIndex++;
+							}
+						}
+					});
 		}
 		
 	@Override
@@ -86,5 +111,9 @@ public class MessageWindow extends Application implements MessageListener{
 	{
 		String messageToAdd = fromUser + " " + message;
 		this.messageContainer.add(new Label(messageToAdd));
+		messageContainer.get(messageIndex).setAlignment(Pos.BASELINE_LEFT);
+		
+		Platform.runLater(() -> messageLayout.getChildren().addAll(messageContainer.get(messageContainer.size()-1)));
+		messageIndex++;
 	}
 }
