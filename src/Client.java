@@ -145,6 +145,11 @@ public class Client {
 		outputStream.println("msg " + user + " " + message);
 	}
 	
+	public void logOffUser()
+	{
+		outputStream.println("Logout");
+	}
+	
 	private void callOnlineStatusListener(String msg)
 	{
 		String[] msgTokens = msg.split(" ");

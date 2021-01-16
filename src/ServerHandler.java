@@ -82,6 +82,10 @@ public class ServerHandler implements Runnable {
 				{
 					sendToUser(messageFromClient);
 				}
+				else if(messageFromClient.equals("Logout"))
+				{
+					break;
+				}
 				else
 				{
 					System.out.println(this.client.getUsername() + ": " + messageFromClient);
@@ -176,7 +180,7 @@ public class ServerHandler implements Runnable {
 		{
 			if(handler.getClient().getUsername() != this.getClient().getUsername())
 			{
-				notify("Offline: " + this.getClient().getUsername());
+				handler.notify("Offline: " + this.getClient().getUsername());
 			}
 		}
 		try

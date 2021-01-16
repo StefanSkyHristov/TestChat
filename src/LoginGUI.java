@@ -1,13 +1,18 @@
+import javax.swing.JOptionPane;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
@@ -78,9 +83,47 @@ public class LoginGUI extends Application implements UserStatusListener {
 		window.setScene(scene);
 		window.show();
 		
+	
 		this.loginButton.setOnAction(e -> {
-			String usernameInput = this.usernameField.getText();
-			String userPasswordInput = this.userPassword.getText();
+			handleLoginAction();
+		});
+		
+		this.usernameField.setOnKeyPressed(new EventHandler<KeyEvent>()
+		{
+
+			@Override
+			public void handle(KeyEvent evt) {
+				if(evt.getCode().equals(KeyCode.ENTER))
+				{
+					handleLoginAction();
+				}
+			}
+		});
+		
+		this.userPassword.setOnKeyPressed(new EventHandler<KeyEvent>()
+		{
+
+			@Override
+			public void handle(KeyEvent evt)
+			{
+				if(evt.getCode().equals(KeyCode.ENTER))
+				{
+					handleLoginAction();
+				}
+			}
+		});
+	}
+	
+	public void handleLoginAction()
+	{
+		String usernameInput = this.usernameField.getText();
+		String userPasswordInput = this.userPassword.getText();
+		if(usernameInput.isEmpty() || userPasswordInput.isEmpty())
+		{
+			JOptionPane.showMessageDialog(null,"You have a missing Credential.","Invalid Input",JOptionPane.ERROR_MESSAGE);
+		}
+		else
+		{
 			
 			if(client.connectToServer())
 			{
@@ -90,7 +133,6 @@ public class LoginGUI extends Application implements UserStatusListener {
 					createUsernamesList(usernameInput);
 					window.close();
 					
-					//client.readIncomingMessages();
 					this.lv.setOnMouseClicked(evt -> {
 						System.out.println("Works!");
 						if(evt.getClickCount() == 2 && !names.isEmpty())
@@ -118,7 +160,7 @@ public class LoginGUI extends Application implements UserStatusListener {
 			{
 				System.err.println("Connection failed.");
 			}
-		});
+		}
 	}
 	
 	private void createUsernamesList(String loggedInUser)
@@ -132,6 +174,10 @@ public class LoginGUI extends Application implements UserStatusListener {
 		scene = new Scene(root,400,500);
 		stage.setScene(scene);
 		stage.show();
+		stage.setOnCloseRequest(evt -> {
+			removeUserFromUserBox(loggedInUser);
+			this.client.logOffUser();
+		});
 		this.userBox.getChildren().add(lv);
 		
 		addUserToUserBox(loggedInUser);
@@ -147,7 +193,7 @@ public class LoginGUI extends Application implements UserStatusListener {
 	
 	private void removeUserFromUserBox(String user)
 	{
-		this.names.remove(user);
+		Platform.runLater(() -> this.names.remove(user));
 	}
 	
 	public String getUserLogin()

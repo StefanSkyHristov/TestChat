@@ -54,13 +54,13 @@ public class MessageWindow extends Application implements MessageListener{
 				
 				if(this.messageIndex % 2 == 0)
 				{
-					messageContainer.get(this.messageIndex).setAlignment(Pos.BASELINE_LEFT);
+					messageContainer.get(messageIndex).setAlignment(Pos.BASELINE_LEFT);
 				}
 				else
 				{
-					messageContainer.get(this.messageIndex).setAlignment(Pos.BASELINE_RIGHT);
+					messageContainer.get(messageIndex).setAlignment(Pos.BASELINE_RIGHT);
 				}
-				
+			
 				this.messageLayout.getChildren().addAll(this.messageContainer.get(messageIndex));
 				this.messageIndex++;
 			});
